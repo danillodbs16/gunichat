@@ -7,7 +7,7 @@
 <h1> <img src="guni.png" alt="Guni" width="45" style="vertical-align: middle;"> GuniCHat </h1>
 
 <p align="center">
-  <img src="gunichat_example.gif" alt="GuniCHat demonstration" width="800">
+  <img src="gunichat_example.gif" alt="GuniChat demonstration" width="800">
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## 📌 Descripción
 
-**GuniCHat** es un buscador conversacional de eventos culturales en Euskadi que permite consultar información utilizando **lenguaje natural**, sin necesidad de construir consultas estructuradas ni conocer los campos internos de los datos.
+**GuniChat** es un buscador conversacional de eventos culturales en Euskadi que permite consultar información utilizando **lenguaje natural**, sin necesidad de construir consultas estructuradas ni conocer los campos internos de los datos.
 
 La aplicación combina datos abiertos de **Euskadi.eus** con información meteorológica proporcionada por **Open-Meteo**, generando un conjunto de datos enriquecido que posteriormente puede ser consultado mediante lenguaje natural.
 
@@ -41,7 +41,7 @@ El sistema interpreta la consulta, identifica los criterios relevantes y aplica 
 
 La aplicación está desplegada utilizando **Streamlit** y puede probarse directamente online:
 
-**🌐 ****[GuniCHat — Demo](https://gunisimple.streamlit.app/)**
+**🌐 ****[GuniChat — Demo](https://gunisimple.streamlit.app/)**
 
 ---
 
@@ -68,7 +68,7 @@ La aplicación está desplegada utilizando **Streamlit** y puede probarse direct
 
 # 🧠 Procesamiento mediante lenguaje natural
 
-La versión actual de GuniCHat utiliza **spaCy** para analizar la consulta del usuario y detectar diferentes tipos de información.
+La versión actual de GuniChat utiliza **spaCy** para analizar la consulta del usuario y detectar diferentes tipos de información.
 
 El objetivo es transformar una consulta en lenguaje natural en una expresión de filtrado que pueda aplicarse directamente sobre un `DataFrame` de Pandas.
 
@@ -110,7 +110,7 @@ Esto permite realizar consultas relativamente complejas sin que el usuario tenga
 
 # 🔍 Tipos de consultas
 
-GuniCHat reconoce actualmente diferentes criterios de búsqueda.
+GuniChat reconoce actualmente diferentes criterios de búsqueda.
 
 ### 📍 Localización
 
@@ -442,7 +442,7 @@ contiene una versión preprocesada y enriquecida de los datos que puede utilizar
 # 📁 Estructura del proyecto
 
 ```text
-GuniCHat/
+GuniChat/
 │
 ├── API_LLM.py
 ├── API_LLM_v2.py
@@ -496,8 +496,8 @@ Demostración de funcionamiento de la aplicación.
 ## 1. Clonar el repositorio
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd GuniCHat
+git clone https://github.com/danillodbs16/gunichat
+cd guniChat
 ```
 
 ## 2. Crear un entorno virtual
@@ -556,7 +556,7 @@ http://localhost:8501
 
 GuniCHat está desplegado en Streamlit y puede probarse sin instalar el proyecto localmente:
 
-**🚀 ****[Abrir GuniCHat](https://gunisimple.streamlit.app/)**
+**🚀 ****[Abrir GuniChat](https://gunisimple.streamlit.app/)**
 
 ---
 
