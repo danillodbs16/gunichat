@@ -4,11 +4,7 @@
 
 ---
 
-# GuniCHat
-
-<p align="center">
-  <img src="guni.png" alt="GuniCHat" width="250">
-</p>
+<h1> <img src="guni.png" alt="Guni" width="45" style="vertical-align: middle;"> GuniCHat </h1>
 
 <p align="center">
   <img src="gunichat_example.gif" alt="GuniCHat demonstration" width="800">
