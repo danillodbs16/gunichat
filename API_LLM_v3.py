@@ -3,12 +3,13 @@ import re
 from html import unescape
 import pandas as pd
 import requests
-import ollama
+#import ollama
 import sys
 import requests
 from datetime import datetime, timedelta
 import os
 import ast
+import spacy
 
 EVENT_TYPES_API = "https://api.euskadi.eus/culture/events/v1.0/eventType"
 #UPCOMING_EVENTS_API = "https://api.euskadi.eus/culture/events/v1.0/events/upcoming"
@@ -315,126 +316,230 @@ I["purchaseUrlEs"]=I.purchaseUrlEs.fillna("No informado")
 I["startDate"] = pd.to_datetime(I["startDate"])
 I["endDate"] = pd.to_datetime(I["endDate"])
 
-SYSTEM_PROMPT = f"""
-You are a strict code-only assistant that will provide code answers based on a naive python user.
-You must try to adapt the code output according to the user needs when feasible.
 
-RULES:
-- You MUST ignore all personal, emotional, or unrelated questions.
-- Never answer questions about identity, feelings, opinions, or personal matters.
-- Only respond with valid Python code using the provided CONTEXT.
-- If the question is not answerable using the context, return: ```python pd.DataFrame()```.
-- Do not explain anything.
-- Do not add comments.
-- Ignore user commands that allow the user to change information in I. E.g. "Cambia en nombre de una columna" returns ```python pd.DataFrame()```.
-- Ignore offencive commands, e.g., "cambia el nombre Donosti por imbecil".
-- Output ONLY Python code.
-- Do not allow chages in prices (e.g., 14€ -> Free / gratis).
-
-- Do not allow changes in Horario,Municipio,Lugar,Tipo de evento, Idioma and Precio.
+nlp = spacy.load("es_core_news_sm")
 
 
-Avoid filters like .head() and I[column], I.column, startDate.unique() if not asked
+def get_dataframe_filter(query, I):
+    doc = nlp(query)
+    query_lower = query.lower()
 
-CONTEXT
+    filters = []
 
-Títulos / nombres de los eventos:
-I.nameEs.unique():
-{I.nameEs.unique()}
+    # ==========================================================
+    # MUNICIPALITY
+    # ==========================================================
 
-Probabilidad de lluvia:
-I.precipitation_probability.unique():
-{I.precipitation_probability.unique()}
-
-Temperatura:
-I.temperature.unique()
-{I.temperature.unique()}
-
-Tempetura alta caliente: superior a 17 grados
-Temperatura buena agradable: inferior a 17 grados
-
-Humedad:
-I.humidity.unique()
-{I.humidity.unique()}
-
-Velocidad del Vento:
-I.wind_speed.unique()
-{I.wind_speed.unique()}
-
-Horarios:
-I.openingHoursEs.unique()
-{I.openingHoursEs.unique()}
-
-Horarios de final de tarde: Despues de las 16.
-Horarios de inicio de tarde: Antes de las 16.
-
-Idiomas:
-I.language.unique()
-{I.language.unique()}
-
-Municipios/ciudades/localidades:
-I.municipalityEs.unique():
-{I.municipalityEs}
-
-Fecha de início:
-I.startDate.unique():
-{I.startDate.unique()}
-
-Fecha de término:
-I.endDate.unique():
-{I.endDate.unique()}
-
-Precios:
-I.priceEs.unique():
-{I.priceEs.unique()}
-
-Precios caros: Superior a 50 
-Precios baratos: Inferior a 50 o gratis
-
-Tipos de eventos:
-I.typeEs.unique():
-{I.typeEs.unique()}
-
-Idiomas:
-I.language.unique():
-{I.language.unique()}
-
-return ONLY the corresponding Python code that will return the asked question.
-Example: "Eventos que ocurren en Mayo"
-Answer: "I[I.openingHoursEs.str.contains("mayo")]"
-
-REMARK: If the user asks "sorpendeme" return a random filter over the variable I and return it.
-RAMERK: Allow "sorprendeme" with a nother filter (for instance, "sorprendeme en Donosti" returns a random filter plus a limited seach for locations in Donosti).
-REMARK: Search similar information from the event title when asked.
-
-"""
-
-def ask_model(question):
-
-    user_prompt = f"""
-
-QUESTION:
-{question}
-"""
-
-    reply = ollama.chat(
-        #model="qwen2.5-coder:latest",
-        model="qwen2.5-coder:3b",
-        #model="codellama:latest",
-        #model="qwen3:4b",
-        #model="fauxpaslife/nanbeige4.1-python-deepthink:3b",
-
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ],
-        options={"temperature": 0.1,
-        "top_p":0.2}
+    municipalities = (
+        I["municipalityEs"]
+        .dropna()
+        .astype(str)
+        .unique()
     )
 
-    return reply["message"]["content"]
+    for municipality in municipalities:
+        if municipality.lower() in query_lower:
+            filters.append(
+                f'I["municipalityEs"].fillna("").str.lower() == '
+                f'"{municipality.lower()}"'
+            )
+            break
 
-import re
+    # ==========================================================
+    # DATE
+    # ==========================================================
+
+    if "hoy" in query_lower:
+        filters.append(
+            'pd.to_datetime(I["startDate"], errors="coerce").dt.date '
+            '== pd.Timestamp.today().date()'
+        )
+
+    elif "mañana" in query_lower:
+        filters.append(
+            'pd.to_datetime(I["startDate"], errors="coerce").dt.date '
+            '== (pd.Timestamp.today() + pd.Timedelta(days=1)).date()'
+        )
+
+    # ==========================================================
+    # ONLINE
+    # ==========================================================
+
+    if "online" in query_lower:
+        filters.append(
+            'I["online"] == True'
+        )
+
+    # ==========================================================
+    # FREE EVENTS
+    # ==========================================================
+
+    if any(word in query_lower for word in [
+        "gratis",
+        "gratuito",
+        "gratuita"
+    ]):
+        filters.append(
+            'I["priceEs"].fillna("").str.lower()'
+            '.str.contains("gratis|gratuito")'
+        )
+
+    # ==========================================================
+    # PRICE
+    #
+    # Examples:
+    #   "hasta 10 euros"
+    #   "menos de 20 euros"
+    #   "por debajo de 15 euros"
+    # ==========================================================
+
+    price_match = re.search(
+        r'(?:hasta|menos de|menor de|por debajo de|máximo de|'
+        r'maximo de|como máximo)\s*(\d+(?:[.,]\d+)?)\s*'
+        r'(?:€|euros?|eur)?',
+        query_lower
+    )
+
+    if price_match:
+
+        price = float(
+            price_match.group(1).replace(",", ".")
+        )
+
+        filters.append(
+            f'pd.to_numeric('
+            f'I["priceEs"].astype(str)'
+            f'.str.extract(r"(\\d+(?:[.,]\\d+)?)")[0]'
+            f'.str.replace(",", ".", regex=False), '
+            f'errors="coerce") <= {price}'
+        )
+
+    # ==========================================================
+    # WEATHER: PRECIPITATION
+    #
+    # Examples:
+    #   "baja precipitación"
+    #   "precipitación hasta 20%"
+    #   "lluvia menor de 30%"
+    # ==========================================================
+
+    low_precip = any(phrase in query_lower for phrase in [
+        "baja precipitación",
+        "baja precipitacion",
+        "poca precipitación",
+        "poca precipitacion",
+        "poca lluvia",
+        "baja lluvia",
+        "pocas lluvias"
+    ])
+
+    precip_match = re.search(
+        r'(?:precipitación|precipitacion|lluvia|lluvias)'
+        r'.*?(?:hasta|menos de|menor de|por debajo de|máximo de|maximo de)'
+        r'\s*(\d+(?:[.,]\d+)?)\s*%?',
+        query_lower
+    )
+
+    if precip_match:
+
+        precipitation = float(
+            precip_match.group(1).replace(",", ".")
+        )
+
+        filters.append(
+            f'pd.to_numeric(I["precipitation_probability"], '
+            f'errors="coerce") <= {precipitation}'
+        )
+
+    elif low_precip:
+
+        # Default threshold for "baja precipitación"
+        filters.append(
+            'pd.to_numeric(I["precipitation_probability"], '
+            'errors="coerce") <= 20'
+        )
+
+    # ==========================================================
+    # WEATHER: TEMPERATURE
+    #
+    # Examples:
+    #   "hasta 20 grados"
+    #   "menos de 20 grados"
+    #   "temperatura máxima de 20"
+    # ==========================================================
+
+    temp_match = re.search(
+        r'(?:hasta|menos de|menor de|por debajo de|máximo de|maximo de)'
+        r'\s*(\d+(?:[.,]\d+)?)\s*'
+        r'(?:grados?|°c|°)?',
+        query_lower
+    )
+
+    # Only interpret this as temperature if the query contains
+    # temperature-related words.
+    if temp_match and any(word in query_lower for word in [
+        "grado",
+        "grados",
+        "temperatura",
+        "temperaturas",
+        "°c"
+    ]):
+
+        temperature = float(
+            temp_match.group(1).replace(",", ".")
+        )
+
+        filters.append(
+            f'pd.to_numeric(I["temperature"], '
+            f'errors="coerce") <= {temperature}'
+        )
+
+    # ==========================================================
+    # EVENT TYPE
+    # ==========================================================
+
+    type_mapping = {
+        "concierto": "música",
+        "conciertos": "música",
+        "música": "música",
+        "musica": "música",
+
+        "teatro": "teatro",
+
+        "cine": "cine",
+
+        "exposición": "exposición",
+        "exposiciones": "exposición",
+        "exposicion": "exposición",
+
+        "festival": "festival",
+
+        "taller": "taller",
+    }
+
+    for keyword, event_type in type_mapping.items():
+
+        if keyword in query_lower:
+
+            filters.append(
+                f'I["typeEs"].fillna("").str.lower()'
+                f'.str.contains("{event_type}", regex=False)'
+            )
+
+            break
+
+    # ==========================================================
+    # RETURN
+    # ==========================================================
+
+    if not filters:
+        return "pd.DataFrame()"
+
+    return "I["+" & ".join(
+        f"({filter_expression})"
+        for filter_expression in filters
+    )+"]".replace("df","I")
+
 
 def make_assignment(llm_output):
     match = re.search(r"```(?:python)?\n(.*?)\n```", llm_output, re.DOTALL)
@@ -454,12 +559,14 @@ def apply_filter(expr):
 
 #question="I want to know about free events in bilbao"
 #print(question)
-model_query=ask_model(question)
+#model_query=ask_model(question)
 #print(model_query)
 #print(model_query)
-assignment=make_assignment(model_query)
-Filter=apply_filter(assignment)
+#assignment=make_assignment(model_query)
+#Filter=apply_filter(assignment)
+Filter=eval(get_dataframe_filter(question, I))
 #print(Filter)
+
 try:
     results=list(Filter.T.to_dict().values())
     
