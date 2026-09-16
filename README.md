@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="gunichat_example.gif" alt="GuniCHat demonstration" width="600">
+  <img src="gunichat_example.gif" alt="GuniCHat demonstration" width="800">
 </p>
 
 <p align="center">
