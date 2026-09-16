@@ -1,6 +1,7 @@
 import streamlit as st
 import subprocess
 import time
+import sys
 
 # -------------------------
 # CONFIG
@@ -108,7 +109,7 @@ def run_query(query, display_question):
         st.markdown(display_question)
 
     result = subprocess.run(
-        ["python3", "API_LLM_v3.py", query],
+        [sys.executable, "API_LLM_v3.py", query],
         capture_output=True,
         text=True
     )
