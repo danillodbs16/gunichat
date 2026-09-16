@@ -1,8 +1,21 @@
-# GuniCHat 🇪🇺
+---
+
+**Author:** Danillo Barros de Souza
+
+**ORCID:** [0000-0002-7792-8862](https://orcid.org/0000-0002-7792-8862)
+
+---
+
+# GuniCHat
 
 <p align="center">
   <img src="guni.png" alt="GuniCHat" width="250">
 </p>
+
+<p align="center">
+  <img src="gunichat_example.gif" alt="GuniCHat" width="250">
+</p>
+
 
 <p align="center">
   <strong>Asistente conversacional para descubrir eventos culturales en Euskadi mediante lenguaje natural.</strong>
@@ -11,7 +24,6 @@
 <p align="center">
   <a href="https://gunisimple.streamlit.app/">🚀 Demo online</a>
   ·
-  <a href="https://orcid.org/0000-0002-7792-8862">ORCID</a>
 </p>
 
 ## 📌 Descripción
