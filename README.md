@@ -13,9 +13,8 @@
 </p>
 
 <p align="center">
-  <img src="gunichat_example.gif" alt="GuniCHat" width="250">
+  <img src="gunichat_example.gif" alt="GuniCHat demonstration" width="600">
 </p>
-
 
 <p align="center">
   <strong>Asistente conversacional para descubrir eventos culturales en Euskadi mediante lenguaje natural.</strong>
@@ -23,8 +22,10 @@
 
 <p align="center">
   <a href="https://gunisimple.streamlit.app/">🚀 Demo online</a>
-  ·
 </p>
+
+---
+
 
 ## 📌 Descripción
 
